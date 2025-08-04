@@ -15,12 +15,12 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
+//login screen 
 class LoginScreen extends StatefulWidget {
   @override
   State<LoginScreen> createState() => _LoginScreenState();
 }
-
+// handle login API call
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController(text: 'mor_2314');
@@ -40,7 +40,7 @@ class _LoginScreenState extends State<LoginScreen> {
             "password": password,
           },
         );
-
+//if login success go to products
         if (response.statusCode == 200 && response.data['token'] != null) {
           Navigator.pushReplacement(
             context,
@@ -50,6 +50,8 @@ class _LoginScreenState extends State<LoginScreen> {
           throw Exception('Login failed');
         }
       } catch (e) {
+
+        // Show error if login fails
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Login failed. Please try again.'),
@@ -104,6 +106,8 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 }
+
+//product section
 
 class ProductScreen extends StatefulWidget {
   @override
