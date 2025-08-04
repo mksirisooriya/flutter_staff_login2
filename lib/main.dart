@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 
 void main() {
   runApp(MyApp());
@@ -22,14 +23,40 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _usernameController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final _usernameController = TextEditingController(text: 'mor_2314');
+  final _passwordController = TextEditingController(text: '83r5^_');
 
-  void _submitForm() {
+  Future<void> _checkLogin() async {
     if (_formKey.currentState!.validate()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Logging in...')),
-      );
+      final username = _usernameController.text.trim();
+      final password = _passwordController.text;
+
+      try {
+        final dio = Dio();
+        final response = await dio.post(
+          'https://fakestoreapi.com/auth/login',
+          data: {
+            "username": username,
+            "password": password,
+          },
+        );
+
+        if (response.statusCode == 200 && response.data['token'] != null) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => ProductScreen()),
+          );
+        } else {
+          throw Exception('Login failed');
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Login failed. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -43,54 +70,109 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue.shade50,
-      body: Center(
-        child: Container(
-          width: 320,
-          padding: const EdgeInsets.all(24.0),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
-          ),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Staff Login',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade700,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                TextFormField(
-                  controller: _usernameController,
-                  decoration: InputDecoration(labelText: 'Username'),
-                  validator: (value) =>
-                      value == null || value.isEmpty ? 'Enter username' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: true,
-                  decoration: InputDecoration(labelText: 'Password'),
-                  validator: (value) =>
-                      value == null || value.isEmpty ? 'Enter password' : null,
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _submitForm,
-                  child: Text('Login'),
-                ),
-              ],
-            ),
+      appBar: AppBar(title: Text('Staff Login')),
+      body: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              TextFormField(
+                controller: _usernameController,
+                decoration: InputDecoration(labelText: 'Username'),
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Please enter username' : null,
+              ),
+              SizedBox(height: 16),
+              TextFormField(
+                controller: _passwordController,
+                decoration: InputDecoration(labelText: 'Password'),
+                obscureText: true,
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Please enter password' : null,
+              ),
+              SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: _checkLogin,
+                child: Text('Login'),
+              ),
+            ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class ProductScreen extends StatefulWidget {
+  @override
+  State<ProductScreen> createState() => _ProductScreenState();
+}
+
+class _ProductScreenState extends State<ProductScreen> {
+  List<dynamic> _products = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchProducts();
+  }
+
+  Future<void> fetchProducts() async {
+    try {
+      final dio = Dio();
+      final response = await dio.get('https://fakestoreapi.com/products');
+      if (response.statusCode == 200) {
+        setState(() {
+          _products = response.data;
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Failed to load products');
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error fetching products'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Product List'),
+        automaticallyImplyLeading: false,
+      ),
+      body: _isLoading
+          ? Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              itemCount: _products.length,
+              itemBuilder: (context, index) {
+                final product = _products[index];
+                return Card(
+                  margin: EdgeInsets.all(10),
+                  child: ListTile(
+                    leading: Image.network(
+                      product['image'],
+                      height: 50,
+                      width: 50,
+                      fit: BoxFit.contain,
+                    ),
+                    title: Text(product['title']),
+                    subtitle: Text('\$${product['price']}'),
+                  ),
+                );
+              },
+            ),
     );
   }
 }
